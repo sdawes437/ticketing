@@ -19,10 +19,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: auth-mongo-serv
+  name: auth-mongo-srv
 spec:
   selector:
-    app: auth-mogho
+    app: auth-mongo
   ports:
     - name: db
       protocol: TCP
