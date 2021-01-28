@@ -2,7 +2,12 @@ import express, { Request, Response } from 'express';
 import { body } from 'express-validator';
 import jwt from 'jsonwebtoken';
 
+<<<<<<< HEAD
 import { BadRequestError, validateRequest } from '@sdawesdevelopment/common';
+=======
+import { BadRequestError } from '../errors/bad-request-error';
+import { validateRequest } from '../middlewares/validate-request';
+>>>>>>> dd8da330dfefdb4fb7738fde310e13b41aeb3f88
 import { User } from '../models/user';
 import { Password } from '../services/password';
 

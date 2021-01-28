@@ -7,7 +7,12 @@ import { currentUserRouter } from './routes/current-user';
 import { signinRouter } from './routes/signin';
 import { signoutRouter } from './routes/signout';
 import { signupRouter } from './routes/signup';
+<<<<<<< HEAD
 import { errorHandler, NotFoundError } from '@sdawesdevelopment/common';
+=======
+import { errorHandler } from './middlewares/error-handler';
+import { NotFoundError } from './errors/not-found-errors';
+>>>>>>> dd8da330dfefdb4fb7738fde310e13b41aeb3f88
 
 const app = express();
 app.set('trust proxy', true);
