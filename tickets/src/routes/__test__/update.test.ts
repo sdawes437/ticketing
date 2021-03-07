@@ -1,40 +1,41 @@
-import request from 'supertest';
-import { app } from '../../app';
-import mongoose from 'mongoose';
-import { natsWrapper } from '../../nats-wrapper';
+import request from "supertest";
+import { app } from "../../app";
+import mongoose from "mongoose";
+import { natsWrapper } from "../../nats-wrapper";
+import { Ticket } from "../../models/ticket";
 
-it('returns a 404 if the provided id does not exist', async () => {
+it("returns a 404 if the provided id does not exist", async () => {
   const id = new mongoose.Types.ObjectId().toHexString();
 
   await request(app)
     .put(`/api/tickets/${id}`)
-    .set('Cookie', global.getAuthCookie())
+    .set("Cookie", global.getAuthCookie())
     .send({
-      title: 'asgdfa',
+      title: "asgdfa",
       price: 20,
     })
     .expect(404);
 });
 
-it('returns a 401 if the user is not authenticated', async () => {
+it("returns a 401 if the user is not authenticated", async () => {
   const id = new mongoose.Types.ObjectId().toHexString();
 
   await request(app)
     .put(`/api/tickets/${id}`)
     .send({
-      title: 'asgdfa',
+      title: "asgdfa",
       price: 20,
     })
     .expect(401);
 });
 
-it('returns a 401 if the user does not own the ticket', async () => {
-  const title = 'dsfdfsa';
+it("returns a 401 if the user does not own the ticket", async () => {
+  const title = "dsfdfsa";
   const price = 20;
 
   const response = await request(app)
-    .post('/api/tickets')
-    .set('Cookie', global.getAuthCookie())
+    .post("/api/tickets")
+    .set("Cookie", global.getAuthCookie())
     .send({
       title,
       price,
@@ -42,9 +43,9 @@ it('returns a 401 if the user does not own the ticket', async () => {
 
   await request(app)
     .put(`/api/tickets/${response.body.id}`)
-    .set('Cookie', global.getAuthCookie())
+    .set("Cookie", global.getAuthCookie())
     .send({
-      title: 'sdfsdf',
+      title: "sdfsdf",
       price: 1000,
     })
     .expect(401);
@@ -57,14 +58,14 @@ it('returns a 401 if the user does not own the ticket', async () => {
   expect(ticketResponse.body.price).toEqual(price);
 });
 
-it('returns a 400 if the user provides an invalid title or price', async () => {
-  const title = 'dsfdfsa';
+it("returns a 400 if the user provides an invalid title or price", async () => {
+  const title = "dsfdfsa";
   const price = 20;
   const cookie = global.getAuthCookie();
 
   const response = await request(app)
-    .post('/api/tickets')
-    .set('Cookie', cookie)
+    .post("/api/tickets")
+    .set("Cookie", cookie)
     .send({
       title,
       price,
@@ -72,16 +73,16 @@ it('returns a 400 if the user provides an invalid title or price', async () => {
 
   await request(app)
     .put(`/api/tickets/${response.body.id}`)
-    .set('Cookie', cookie)
+    .set("Cookie", cookie)
     .send({
-      title: '',
+      title: "",
       price: 20,
     })
     .expect(400);
 
   await request(app)
     .put(`/api/tickets/${response.body.id}`)
-    .set('Cookie', cookie)
+    .set("Cookie", cookie)
     .send({
       price: -10,
     })
@@ -89,24 +90,24 @@ it('returns a 400 if the user provides an invalid title or price', async () => {
 
   await request(app)
     .put(`/api/tickets/${response.body.id}`)
-    .set('Cookie', cookie)
+    .set("Cookie", cookie)
     .send({
-      title: '',
+      title: "",
       price: -10,
     })
     .expect(400);
 });
 
-it('updates the ticket when provided valid inputs', async () => {
-  const title = 'dsfdfsa';
+it("updates the ticket when provided valid inputs", async () => {
+  const title = "dsfdfsa";
   const price = 20;
-  const newTitle = 'new title';
+  const newTitle = "new title";
   const newPrice = 200;
   const cookie = global.getAuthCookie();
 
   const response = await request(app)
-    .post('/api/tickets')
-    .set('Cookie', cookie)
+    .post("/api/tickets")
+    .set("Cookie", cookie)
     .send({
       title,
       price,
@@ -114,7 +115,7 @@ it('updates the ticket when provided valid inputs', async () => {
 
   await request(app)
     .put(`/api/tickets/${response.body.id}`)
-    .set('Cookie', cookie)
+    .set("Cookie", cookie)
     .send({
       title: newTitle,
       price: newPrice,
@@ -129,16 +130,16 @@ it('updates the ticket when provided valid inputs', async () => {
   expect(ticketResponse.body.price).toEqual(newPrice);
 });
 
-it('publishes an event', async () => {
-  const title = 'dsfdfsa';
+it("publishes an event", async () => {
+  const title = "dsfdfsa";
   const price = 20;
-  const newTitle = 'new title';
+  const newTitle = "new title";
   const newPrice = 200;
   const cookie = global.getAuthCookie();
 
   const response = await request(app)
-    .post('/api/tickets')
-    .set('Cookie', cookie)
+    .post("/api/tickets")
+    .set("Cookie", cookie)
     .send({
       title,
       price,
@@ -146,7 +147,7 @@ it('publishes an event', async () => {
 
   await request(app)
     .put(`/api/tickets/${response.body.id}`)
-    .set('Cookie', cookie)
+    .set("Cookie", cookie)
     .send({
       title: newTitle,
       price: newPrice,
@@ -154,4 +155,34 @@ it('publishes an event', async () => {
     .expect(200);
 
   expect(natsWrapper.client.publish).toHaveBeenCalled();
+});
+
+it("rejects updates if the ticket is reserved", async () => {
+  const title = "dsfdfsa";
+  const price = 20;
+  const newTitle = "new title";
+  const newPrice = 200;
+  const cookie = global.getAuthCookie();
+
+  const response = await request(app)
+    .post("/api/tickets")
+    .set("Cookie", cookie)
+    .send({
+      title,
+      price,
+    });
+
+  const ticket = await Ticket.findById(response.body.id);
+  ticket!.set({ orderId: mongoose.Types.ObjectId().toHexString() });
+
+  await ticket!.save();
+
+  await request(app)
+    .put(`/api/tickets/${response.body.id}`)
+    .set("Cookie", cookie)
+    .send({
+      title: newTitle,
+      price: newPrice,
+    })
+    .expect(400);
 });
