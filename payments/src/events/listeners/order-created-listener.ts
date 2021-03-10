@@ -2,28 +2,26 @@ import {
   Listener,
   OrderCreatedEvent,
   Subjects,
+  OrderStatus,
 } from "@sdawesdevelopment/common";
+import { Order } from "../../models/order";
 import { Message } from "node-nats-streaming";
 import { queueGroupName } from "./queue-group-name";
-import { expirationQueue } from "../../queues/expiration-queue";
 
 export class OrderCreatedListener extends Listener<OrderCreatedEvent> {
   readonly subject: Subjects.OrderCreated = Subjects.OrderCreated;
-
   queueGroupName = queueGroupName;
 
   async onMessage(data: OrderCreatedEvent["data"], msg: Message) {
-    const delay = new Date(data.expiresAt).getTime() - new Date().getTime();
-    console.log("Waiting this many milliseconds to process the job:", delay);
+    const order = Order.build({
+      id: data.id,
+      version: data.version,
+      price: data.ticket.price,
+      userId: data.userId,
+      status: OrderStatus.AwaitingPayment,
+    });
 
-    await expirationQueue.add(
-      {
-        orderId: data.id,
-      },
-      {
-        delay: delay,
-      }
-    );
+    await order.save();
 
     msg.ack();
   }

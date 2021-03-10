@@ -1,24 +1,24 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response } from "express";
 import {
   BadRequestError,
   NotFoundError,
   requireAuth,
   validateRequest,
-} from '@sdawesdevelopment/common';
-import { body } from 'express-validator';
-import { Ticket } from '../models/ticket';
-import { Order, OrderStatus } from '../models/order';
-import { OrderCreatedPublisher } from '../events/publishers/order-created-publisher';
-import { natsWrapper } from '../nats-wrapper';
+} from "@sdawesdevelopment/common";
+import { body } from "express-validator";
+import { Ticket } from "../models/ticket";
+import { Order, OrderStatus } from "../models/order";
+import { OrderCreatedPublisher } from "../events/publishers/order-created-publisher";
+import { natsWrapper } from "../nats-wrapper";
 
 const router = express.Router();
 
 const EXPIRATION_WINDOW_SECONDS = 15 * 60;
 
 router.post(
-  '/api/orders',
+  "/api/orders",
   requireAuth,
-  [body('ticketId').not().isEmpty().withMessage('TicketId must be provided')],
+  [body("ticketId").not().isEmpty().withMessage("TicketId must be provided")],
   validateRequest,
   async (req: Request, res: Response) => {
     // Find the ticket the user is trying to order in the database
@@ -36,7 +36,7 @@ router.post(
     const isReserved = await ticket.isReserved();
 
     if (isReserved) {
-      throw new BadRequestError('Ticket is already reserved');
+      throw new BadRequestError("Ticket is already reserved");
     }
 
     // Calculate an expiration date for this order
